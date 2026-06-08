@@ -1,0 +1,27 @@
+{
+  "name": "cleango",
+  "version": "1.0.0",
+  "description": "CleanGo - Nigerian Home Services Marketplace for Kaduna State",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "backend:dev": "yarn workspace @cleango/backend dev",
+    "backend:start": "yarn workspace @cleango/backend start",
+    "backend:test": "yarn workspace @cleango/backend test",
+    "backend:seed": "yarn workspace @cleango/backend seed",
+    "install:all": "yarn install",
+    "lint": "yarn workspaces run lint"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  },
+  "author": "CleanGo Team",
+  "license": "MIT"
+}
