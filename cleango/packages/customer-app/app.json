@@ -1,0 +1,97 @@
+{
+  "expo": {
+    "name": "CleanGo",
+    "slug": "cleango-customer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2E7D32"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.cleango.customer",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "CleanGo needs your location to find service providers near you.",
+        "NSLocationAlwaysUsageDescription": "CleanGo uses your location to track your cleaner in real-time.",
+        "NSCameraUsageDescription": "CleanGo needs camera access to upload before/after photos.",
+        "NSPhotoLibraryUsageDescription": "CleanGo needs photo library access to upload images.",
+        "NSMicrophoneUsageDescription": "CleanGo needs microphone access for video calls with your cleaner."
+      },
+      "config": {
+        "googleMapsApiKey": "YOUR_IOS_GOOGLE_MAPS_API_KEY_HERE"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2E7D32"
+      },
+      "package": "com.cleango.customer",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "INTERNET"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY_HERE"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "CleanGo needs your location to connect you with nearby cleaners."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#2E7D32",
+          "defaultChannel": "default"
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CleanGo accesses your photos to upload job images.",
+          "cameraPermission": "CleanGo uses your camera to capture job photos."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID_HERE"
+      },
+      "apiBaseUrl": "https://api.cleango.ng",
+      "paystackPublicKey": "pk_test_YOUR_PAYSTACK_PUBLIC_KEY_HERE",
+      "firebaseConfig": {
+        "apiKey": "YOUR_FIREBASE_API_KEY",
+        "authDomain": "cleango-ng.firebaseapp.com",
+        "projectId": "cleango-ng",
+        "storageBucket": "cleango-ng.appspot.com",
+        "messagingSenderId": "YOUR_MESSAGING_SENDER_ID",
+        "appId": "YOUR_FIREBASE_APP_ID"
+      }
+    }
+  }
+}
