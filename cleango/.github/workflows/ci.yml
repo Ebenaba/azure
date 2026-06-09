@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint-and-test-backend:
+    name: Lint & Test Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint backend (if script exists)
+        run: |
+          if yarn workspace @cleango/backend run --list 2>/dev/null | grep -q 'lint'; then
+            yarn workspace @cleango/backend lint
+          else
+            echo "No lint script found, skipping."
+          fi
+
+      - name: Test backend
+        run: yarn workspace @cleango/backend test --passWithNoTests --ci
+
+  build-admin-dashboard:
+    name: Build Admin Dashboard
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build admin dashboard
+        run: yarn workspace @cleango/admin-dashboard build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_FIREBASE_API_KEY: placeholder_api_key
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: placeholder.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: placeholder_project_id
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: placeholder.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          NEXT_PUBLIC_FIREBASE_APP_ID: placeholder_app_id
+          NEXT_PUBLIC_API_URL: https://api.cleango.ng/api/v1
+          NEXT_PUBLIC_GOOGLE_MAPS_KEY: placeholder_maps_key
+
+  docker-build-check:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    needs: [lint-and-test-backend, build-admin-dashboard]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: packages/backend
+          file: packages/backend/Dockerfile
+          push: false
+          tags: cleango-backend:ci
+
+      - name: Build admin-dashboard image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: packages/admin-dashboard
+          file: packages/admin-dashboard/Dockerfile
+          push: false
+          tags: cleango-admin:ci
+          build-args: |
+            NEXT_TELEMETRY_DISABLED=1
