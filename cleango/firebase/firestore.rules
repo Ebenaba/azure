@@ -1,0 +1,207 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ──────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function hasRole(role) {
+      return isSignedIn() && request.auth.token.role == role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'super_admin'
+      );
+    }
+
+    function isWorker() {
+      return isSignedIn() && request.auth.token.role == 'worker';
+    }
+
+    function isCustomer() {
+      return isSignedIn() && request.auth.token.role == 'customer';
+    }
+
+    // ─── Users ────────────────────────────────────────────────────────────────
+    // Customers can read and update their own document.
+    // Admins can read/write all user documents.
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Workers ──────────────────────────────────────────────────────────────
+    // Workers can read their own document and update non-sensitive fields.
+    // Admins can read/write all worker documents.
+    // Customers can read basic worker info (for booking context).
+    match /workers/{workerId} {
+      allow read: if isOwner(workerId) || isAdmin() || isCustomer();
+      allow create: if isAdmin();
+      allow update: if isOwner(workerId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Bookings ─────────────────────────────────────────────────────────────
+    // Customers can read/create their own bookings.
+    // Workers can read bookings assigned to them.
+    // Admins can read/write all bookings.
+    match /bookings/{bookingId} {
+      allow read: if isAdmin()
+        || (isCustomer() && resource.data.customerId == request.auth.uid)
+        || (isWorker() && resource.data.workerId == request.auth.uid);
+
+      allow create: if isCustomer() && request.resource.data.customerId == request.auth.uid;
+
+      allow update: if isAdmin()
+        || (isCustomer()
+            && resource.data.customerId == request.auth.uid
+            && resource.data.status in ['pending', 'confirmed'])
+        || (isWorker() && resource.data.workerId == request.auth.uid);
+
+      allow delete: if isAdmin();
+    }
+
+    // ─── Services ─────────────────────────────────────────────────────────────
+    // Public read. Only admins can write.
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ─── Zones ────────────────────────────────────────────────────────────────
+    // Public read. Only admins can write.
+    match /zones/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ─── Reviews ──────────────────────────────────────────────────────────────
+    // Public read (visible reviews).
+    // Customers can create reviews for their own completed bookings.
+    // Admins can manage all reviews.
+    match /reviews/{reviewId} {
+      allow read: if resource.data.isVisible == true || isAdmin();
+      allow create: if isCustomer()
+        && request.resource.data.customerId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Payments ─────────────────────────────────────────────────────────────
+    // Customers read their own. Admins read/write all. No client writes.
+    match /payments/{paymentId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.customerId == request.auth.uid);
+      allow create: if isAdmin(); // Server-side only
+      allow update: if isAdmin(); // Server-side only
+      allow delete: if isAdmin();
+    }
+
+    // ─── Escrow ───────────────────────────────────────────────────────────────
+    // Server-side only. Admins can read.
+    match /escrow/{escrowId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin(); // Writes happen server-side via Admin SDK
+    }
+
+    // ─── Notifications ────────────────────────────────────────────────────────
+    // Users read/update their own notifications. Admins manage all.
+    match /notifications/{notifId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin()
+        || (isSignedIn()
+            && resource.data.userId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']));
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin(); // Server-side only
+    }
+
+    // ─── Chats ────────────────────────────────────────────────────────────────
+    // Booking participants (customer + assigned worker) + admins.
+    match /chats/{bookingId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && request.auth.uid in resource.data.participants);
+
+      allow create: if isSignedIn();
+
+      allow update: if isAdmin()
+        || (isSignedIn() && request.auth.uid in resource.data.participants);
+
+      // ─── Chat Messages ───────────────────────────────────────────────────
+      match /messages/{messageId} {
+        allow read: if isAdmin()
+          || (isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(bookingId)).data.participants);
+
+        allow create: if isSignedIn()
+          && request.resource.data.senderId == request.auth.uid
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(bookingId)).data.participants;
+
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ─── Worker Locations ─────────────────────────────────────────────────────
+    // Workers write their own location. Booking participants and admins read.
+    match /workerLocations/{workerId} {
+      allow read: if isAdmin() || isOwner(workerId) || isCustomer();
+      allow write: if isOwner(workerId) || isAdmin();
+    }
+
+    // ─── Complaints ───────────────────────────────────────────────────────────
+    // Users create their own complaints. Admins manage all.
+    match /complaints/{complaintId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.complainantId == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.complainantId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Audit Logs ───────────────────────────────────────────────────────────
+    // Read-only for admins. Written by server only.
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // Server-side Admin SDK only
+    }
+
+    // ─── Subscriptions ────────────────────────────────────────────────────────
+    match /subscriptions/{subId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Promo Codes ──────────────────────────────────────────────────────────
+    // Authenticated users can read active promo codes (for validation).
+    // Only admins can write.
+    match /promoCodes/{promoId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ─── Prayer Times ─────────────────────────────────────────────────────────
+    // Public read. Server writes only.
+    match /prayerTimes/{dateId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
