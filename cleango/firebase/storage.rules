@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── Helper Functions ──────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'super_admin'
+      );
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isUnder5MB() {
+      return request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    function isUnder10MB() {
+      return request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    // ─── Admins: unrestricted access ──────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // ─── User profile photos ──────────────────────────────────────────────────
+    // Path: users/{userId}/profile/{filename}
+    match /users/{userId}/profile/{filename} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && isImageFile() && isUnder5MB();
+      allow delete: if isOwner(userId);
+    }
+
+    // ─── Worker documents ─────────────────────────────────────────────────────
+    // Path: workers/{workerId}/documents/{docType}/{filename}
+    // Workers can upload their own documents (NIN photo, guarantor letter, police report, profile photo).
+    match /workers/{workerId}/documents/{docType}/{filename} {
+      allow read: if isSignedIn() && (isOwner(workerId) || isAdmin());
+      allow write: if isOwner(workerId) && isUnder10MB();
+      allow delete: if isOwner(workerId) || isAdmin();
+    }
+
+    // ─── Booking completion photos ────────────────────────────────────────────
+    // Path: bookings/{bookingId}/completion/{filename}
+    // Assigned worker uploads completion photos. Customers can read their own booking photos.
+    match /bookings/{bookingId}/completion/{filename} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImageFile() && isUnder5MB();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Chat images ─────────────────────────────────────────────────────────
+    // Path: chats/{bookingId}/images/{filename}
+    match /chats/{bookingId}/images/{filename} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImageFile() && isUnder5MB();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Service type images (admin managed) ─────────────────────────────────
+    // Path: services/{serviceKey}/{filename}
+    match /services/{serviceKey}/{filename} {
+      allow read: if true;
+      allow write: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Zone images (admin managed) ─────────────────────────────────────────
+    match /zones/{zoneKey}/{filename} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ─── Complaint evidence ───────────────────────────────────────────────────
+    // Path: complaints/{complaintId}/evidence/{filename}
+    match /complaints/{complaintId}/evidence/{filename} {
+      allow read: if isSignedIn() && isAdmin();
+      allow write: if isSignedIn() && isUnder10MB();
+      allow delete: if isAdmin();
+    }
+  }
+}
