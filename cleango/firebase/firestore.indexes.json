@@ -1,7 +1,5 @@
 {
   "indexes": [
-    // ─── Bookings ──────────────────────────────────────────────────────────────
-
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
@@ -56,21 +54,10 @@
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "createdAt", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "bookings",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "serviceType", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ─── Workers ───────────────────────────────────────────────────────────────
-
     {
       "collectionGroup": "workers",
       "queryScope": "COLLECTION",
@@ -138,9 +125,14 @@
         { "fieldPath": "rating", "order": "ASCENDING" }
       ]
     },
-
-    // ─── Payments ──────────────────────────────────────────────────────────────
-
+    {
+      "collectionGroup": "workers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "documents.policeReportExpiry", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
     {
       "collectionGroup": "payments",
       "queryScope": "COLLECTION",
@@ -165,9 +157,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ─── Escrow ────────────────────────────────────────────────────────────────
-
     {
       "collectionGroup": "escrow",
       "queryScope": "COLLECTION",
@@ -184,9 +173,6 @@
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },
-
-    // ─── Reviews ───────────────────────────────────────────────────────────────
-
     {
       "collectionGroup": "reviews",
       "queryScope": "COLLECTION",
@@ -212,9 +198,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ─── Notifications ─────────────────────────────────────────────────────────
-
     {
       "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
@@ -232,9 +215,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ─── Complaints ────────────────────────────────────────────────────────────
-
     {
       "collectionGroup": "complaints",
       "queryScope": "COLLECTION",
@@ -251,9 +231,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ─── Chat Messages ─────────────────────────────────────────────────────────
-
     {
       "collectionGroup": "messages",
       "queryScope": "COLLECTION_GROUP",
@@ -270,9 +247,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
-    // ─── Subscriptions ─────────────────────────────────────────────────────────
-
     {
       "collectionGroup": "subscriptions",
       "queryScope": "COLLECTION",
@@ -289,9 +263,6 @@
         { "fieldPath": "expiresAt", "order": "ASCENDING" }
       ]
     },
-
-    // ─── Worker Locations ──────────────────────────────────────────────────────
-
     {
       "collectionGroup": "workerLocations",
       "queryScope": "COLLECTION",
